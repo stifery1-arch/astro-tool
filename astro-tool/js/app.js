@@ -54,7 +54,7 @@
       ],                    // ← 用 tools/unlock-codegen.html 生成的哈希粘贴到这里
       reportHashes: [],                    // ← 报告级解锁码哈希（绑定报告编号）
       demoCode: '',                // 演示码，正式上线前请改成 ''
-      wechatQrcode: '',                     // 例如 'images/wechat-qr.png'（把收款码图片放进 images/）
+      wechatQrcode: 'images/wechat-qr.png',                     // 例如 'images/wechat-qr.png'（把收款码图片放进 images/）
       alipayQrcode: '',                     // 例如 'images/alipay-qr.png'
       contact: '微信 LB5263｜付款后把订单号发给我领取解锁码',
       apiBase: '',                          // 填后端地址（server/pay-server.js）则启用「支付后自动解锁」
