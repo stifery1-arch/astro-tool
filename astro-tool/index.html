@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>星语星盘 · 在线本命盘排盘与解读</title>
+<meta name="description" content="免费在线星盘排盘：输入出生时间与地点，自动计算太阳、月亮、上升、十大行星、十二宫位、相位与格局，并生成中文解读报告。">
+<meta name="theme-color" content="#0b0f1c">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="starfield" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="#top">
+      <span class="logo-mark">✦</span>
+      <span class="logo-text" data-brand>星语星盘</span>
+    </a>
+    <nav class="nav">
+      <a href="#chartForm">开始排盘</a>
+      <a href="#wheelCard">星盘图</a>
+      <a href="#readingCard">解读报告</a>
+      <a href="#transitCard">今日行运</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <h1 class="hero-title">在线<span class="gold">星盘</span>排盘与解读</h1>
+    <p class="hero-sub" data-slogan>输入出生时间，免费生成你的本命星盘与解读报告</p>
+    <div class="badges">
+      <span class="badge">回归黄道</span>
+      <span class="badge">十行星 · 南北交点</span>
+      <span class="badge">普拉西度宫位</span>
+      <span class="badge">136 城市自动时区</span>
+      <span class="badge">历史夏令时修正</span>
+      <span class="badge">纯本地计算，不上传隐私</span>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <form id="chartForm" class="card form-card" autocomplete="off">
+      <div class="form-head">
+        <h2>出生资料</h2>
+        <p class="dim">请尽量填写准确的出生日期、时间与地点。出生地支持全国 34 个省 / 370+ 地级市 / 2800+ 区县，可直接输入中文、拼音或首字母（如 hz、yiwu），也可逐级选择。</p>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="name">昵称</label>
+          <input type="text" id="name" placeholder="例如：小星" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="date">出生日期 <span class="req">*</span></label>
+          <input type="date" id="date" min="1800-01-01" max="2100-12-31" required>
+        </div>
+        <div class="field">
+          <label for="time">出生时间（24 小时制）</label>
+          <input type="time" id="time" step="60">
+          <label class="checkbox"><input type="checkbox" id="unknownTime"> 出生时间不确定</label>
+        </div>
+        <div class="field">
+          <label for="city">出生地 <span class="req">*</span></label>
+          <div class="combo">
+            <input type="text" id="city" autocomplete="off" spellcheck="false"
+                   placeholder="输入省 / 市 / 区县或拼音，如：杭州、潮州、朝阳区、hz、yiwu">
+            <div class="suggest hidden" id="citySuggest" role="listbox"></div>
+          </div>
+          <button type="button" class="link-toggle" id="pickerToggle">▸ 不知道怎么写？按省 / 市 / 区县逐级选择</button>
+          <div class="picker hidden" id="cityPicker">
+            <select id="provSelect" aria-label="省份"></select>
+            <select id="citySelect" aria-label="城市" disabled></select>
+            <select id="distSelect" aria-label="区县" disabled></select>
+          </div>
+          <div class="hint" id="cityHint"></div>
+        </div>
+      </div>
+
+      <button type="button" class="advanced-toggle" id="advancedToggle">高级选项（经纬度 / 宫位制）</button>
+      <div class="advanced" id="advanced">
+        <div class="field">
+          <label for="zone">时区</label>
+          <select id="zone"></select>
+        </div>
+        <div class="field">
+          <label for="lat">纬度（北纬为正）</label>
+          <input type="number" id="lat" step="0.0001" placeholder="39.9042">
+        </div>
+        <div class="field">
+          <label for="lon">经度（东经为正）</label>
+          <input type="number" id="lon" step="0.0001" placeholder="116.4074">
+        </div>
+        <div class="field">
+          <label for="houseSystem">宫位制</label>
+          <select id="houseSystem">
+            <option value="placidus">普拉西度 Placidus（最常用）</option>
+            <option value="whole">整宫制 Whole Sign（古典）</option>
+            <option value="equal">等分宫位 Equal</option>
+            <option value="porphyry">波菲里 Porphyry</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-gold" id="submitBtn">开始排盘</button>
+        <button type="button" class="btn btn-ghost" id="exampleBtn">填入示例</button>
+        <button type="button" class="btn btn-ghost" id="resetBtn">清空</button>
+      </div>
+      <div id="history"></div>
+      <p class="privacy dim">所有计算都在你的浏览器本地完成，出生资料不会上传到任何服务器。</p>
+    </form>
+  </section>
+
+  <section class="wrap" id="placeholder">
+    <div class="card placeholder-card">
+      <div class="ph-ring"></div>
+      <h3>还没有星盘</h3>
+      <p class="dim">填写上方的出生资料，点击「开始排盘」，即可生成你的本命星盘与完整解读。</p>
+    </div>
+  </section>
+
+  <section class="wrap hidden" id="results">
+    <div class="result-head card">
+      <div class="meta" id="metaLine"></div>
+      <div class="result-actions">
+        <button class="btn btn-ghost" id="pngBtn">下载星盘图片</button>
+        <button class="btn btn-ghost" id="printBtn">打印 / 存为 PDF</button>
+        <button class="btn btn-ghost" id="copyReport">复制完整报告</button>
+        <button class="btn btn-ghost" id="copyShare">复制分享文案</button>
+      </div>
+    </div>
+    <div class="warn hidden" id="unknownWarn">⚠ 你选择了「出生时间不确定」，上升星座与全部宫位仅供参考，建议补充准确出生时间后重新排盘。</div>
+
+    <div class="big-three" id="bigThree"></div>
+
+    <div class="card" id="wheelCard">
+      <div class="card-head">
+        <h2>本命星盘</h2>
+        <p class="dim">外圈为黄道十二宫（按元素着色），内侧为宫位分割与相位线。金色实线为上升、中天、下降、天底四轴。</p>
+      </div>
+      <div class="wheel-wrap">
+        <div class="wheel" id="wheel"></div>
+        <div class="wheel-legend">
+          <div class="legend-block">
+            <h4>相位线</h4>
+            <ul class="legend-list">
+              <li><span class="line" style="background:#e8c46a"></span>合相 0°</li>
+              <li><span class="line" style="background:#57a8c4"></span>三分相 120°</li>
+              <li><span class="line" style="background:#66c39a"></span>六分相 60°</li>
+              <li><span class="line" style="background:#d8834a"></span>四分相 90°</li>
+              <li><span class="line" style="background:#e2604a"></span>对冲 180°</li>
+              <li><span class="line" style="background:#a97fd0"></span>十二分相 150°</li>
+            </ul>
+          </div>
+          <div class="legend-block">
+            <h4>元素</h4>
+            <ul class="legend-list">
+              <li><span class="dot" style="background:#c8563f"></span>火象</li>
+              <li><span class="dot" style="background:#a5764b"></span>土象</li>
+              <li><span class="dot" style="background:#4a86b8"></span>风象</li>
+              <li><span class="dot" style="background:#2f7f8a"></span>水象</li>
+            </ul>
+          </div>
+          <div class="legend-block">
+            <h4>提示</h4>
+            <p class="dim small">行星度数后的 ℞ 表示出生时为逆行。相近行星会自动错开显示，避免重叠。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>行星落点</h2>
+        <p class="dim">角度精确到分。庙旺落陷为古典尊贵判断，逆行以 ℞ 标注。</p>
+      </div>
+      <div class="table-scroll"><table class="data-table" id="planetsTable"></table></div>
+      <h3 class="sub-title">四轴点</h3>
+      <div class="table-scroll"><table class="data-table" id="anglesTable"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>十二宫位</h2>
+        <p class="dim">宫头星座与宫主星，以及落在该宫内的行星。</p>
+      </div>
+      <div class="table-scroll"><table class="data-table" id="housesTable"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>相位关系</h2>
+        <p class="dim">按紧密程度排序。相位容许度：合相/对冲 8°（日月 10°）、四分/三分 7°、六分 5°、十二分 3°。</p>
+      </div>
+      <div class="table-scroll"><table class="data-table" id="aspectsTable"></table></div>
+      <h3 class="sub-title">相位网格</h3>
+      <div class="table-scroll"><div id="aspectGrid"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>能量分布与格局</h2>
+        <p class="dim">元素、模式与半球分布，以及自动识别的星盘格局。</p>
+      </div>
+      <div class="balance" id="balanceBars"></div>
+      <h3 class="sub-title">星盘格局</h3>
+      <ul class="pattern-list" id="patternList"></ul>
+    </div>
+
+    <div class="card" id="readingCard">
+      <div class="card-head">
+        <h2>解读报告</h2>
+        <p class="dim">点击标题可展开或收起。内容由星盘数据自动生成，用于自我探索参考。</p>
+      </div>
+      <div id="reading"></div>
+    </div>
+
+    <div class="card" id="transitCard">
+      <div class="card-head">
+        <h2>行运 · 当前天象</h2>
+        <p class="dim">行运星与本命星形成紧密相位（1.5° 以内）时列出，可切换日期查看不同时间点。</p>
+      </div>
+      <div class="transit-bar">
+        <label for="transitDate">选择日期</label>
+        <input type="date" id="transitDate">
+        <span class="dim">当前行运：<span id="transitDateLabel"></span></span>
+      </div>
+      <h4 class="sub-title">今日行运行星</h4>
+      <div class="sky" id="currentSky"></div>
+      <h4 class="sub-title">行运提醒</h4>
+      <ul class="transit-list" id="transitList"></ul>
+    </div>
+
+    <div class="card" id="reportCard">
+      <div class="card-head">
+        <span class="unlock-badge hidden" id="unlockBadge">🔓 已解锁导出功能</span>
+        <h2>付费交付报告（PDF）</h2>
+        <p class="dim">一键生成可交付给客户的 A4 多页报告：封面 + 目录 + 六章解读（星盘总览 / 行星宫位 / 相位格局 / 能量平衡 / 未来一年行运 / 附录），带报告编号与专属水印。</p>
+      </div>
+      <div class="report-settings">
+        <div class="field">
+          <label for="rpTitle">报告标题</label>
+          <input type="text" id="rpTitle" value="深度个人星盘报告" maxlength="24">
+        </div>
+        <div class="field">
+          <label for="rpClient">客户称呼</label>
+          <input type="text" id="rpClient" placeholder="默认使用排盘昵称" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="rpAuthor">解读师 / 工作室署名</label>
+          <input type="text" id="rpAuthor" maxlength="24">
+        </div>
+        <div class="field">
+          <label for="rpOrder">订单号（可选）</label>
+          <input type="text" id="rpOrder" placeholder="例如 20260927001" maxlength="24">
+        </div>
+        <div class="field">
+          <label for="rpWatermark">专属水印（留空则无水印）</label>
+          <input type="text" id="rpWatermark" placeholder="例如：仅限 小星 使用" maxlength="30">
+        </div>
+        <div class="field">
+          <label for="rpContact">联系方式（写入附录）</label>
+          <input type="text" id="rpContact" maxlength="40">
+        </div>
+      </div>
+      <div class="report-actions">
+        <button class="btn btn-gold" id="rpPreviewBtn">生成报告预览</button>
+        <button class="btn btn-ghost" id="rpPdfBtn">下载 PDF 文件</button>
+        <button class="btn btn-ghost" id="rpPrintBtn">打印 / 存为矢量 PDF</button>
+        <button class="btn btn-ghost" id="rpCopyBtn">复制交付话术</button>
+      </div>
+      <div class="report-status" id="rpStatus"></div>
+      <div class="report-preview hidden" id="rpPreview"></div>
+    </div>
+    <div class="card cta-card" id="ctaCard"></div>
+
+    <div class="card disclaimer-card">
+      <h3>免责声明</h3>
+      <p class="dim" data-disclaimer>本工具的所有计算与内容仅供自我探索、心理反思与娱乐参考，不构成医疗、法律、投资、婚姻等任何专业建议。请勿将结果用于重大决策依据。</p>
+      <p class="dim small">计算说明：采用回归黄道与当日真黄经，宫位支持普拉西度 / 整宫制 / 等分宫位 / 波菲里；行星精度约 1 弧分（太阳、月亮）至 10 弧分（外行星），适用于 1800 - 2100 年。</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <span data-brand>星语星盘</span>
+    <span class="dim">·</span>
+    <span class="dim" data-brandnote>回归黄道 · 普拉西度宫位 · 十行星与交点</span>
+  </div>
+</footer>
+
+<div class="paywall hidden" id="paywall" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+  <div class="paywall-backdrop" data-close="1"></div>
+  <div class="paywall-box">
+    <button class="paywall-close" data-close="1" aria-label="关闭">✕</button>
+    <div class="paywall-head">
+      <h3 id="payTitle">解锁导出与高清报告</h3>
+      <p class="dim" id="paySub">一次解锁，本设备即可下载图片、打印/存为 PDF、复制完整报告</p>
+      <div class="pay-price" id="payPrice">¥9.9</div>
+    </div>
+    <div class="pay-body">
+      <div class="pay-steps">
+        <div class="pay-step"><span class="step-num">1</span>扫码支付 <b id="payAmount">¥9.9</b></div>
+        <div class="pay-qr">
+          <div class="qr-tabs" id="qrTabs">
+            <button type="button" data-ch="wechat" class="active">微信支付</button>
+            <button type="button" data-ch="alipay">支付宝</button>
+          </div>
+          <div class="qr-box" id="qrBox"></div>
+          <div class="qr-tip dim" id="qrTip"></div>
+        </div>
+        <div class="pay-step"><span class="step-num">2</span>付款后把订单号发给解读师，获取解锁码</div>
+        <div class="order-row">
+          <code id="payOrderNo">—</code>
+          <button type="button" class="btn btn-ghost btn-sm" id="copyOrderNo">复制订单号</button>
+        </div>
+        <div class="pay-step"><span class="step-num">3</span>输入解锁码，立即解锁</div>
+        <div class="code-row">
+          <input type="text" id="payCode" placeholder="例如 XYA7-K2M9" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn btn-gold" id="payUnlock">解锁</button>
+        </div>
+        <div class="pay-msg" id="payMsg"></div>
+        <div class="pay-poll hidden" id="payPoll"><span class="spinner"></span><span id="payPollText">等待支付结果…</span></div>
+      </div>
+      <div class="pay-aside">
+        <div class="pay-benefits">
+          <h4>解锁后可做</h4>
+          <ul>
+            <li>下载高清星盘图片（PNG）</li>
+            <li>打印 / 存为矢量 PDF</li>
+            <li>复制完整文字报告</li>
+            <li>下载多页 PDF 交付报告</li>
+          </ul>
+        </div>
+        <div class="pay-contact" id="payContact"></div>
+        <button type="button" class="link-toggle" id="payReset">已解锁，想重新验证？</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div id="printRoot"></div>
+
+<script src="js/ephemeris.js"></script>
+<script src="js/astro.js"></script>
+<script src="js/interpretations.js"></script>
+<script src="js/data.js"></script>
+<script src="js/data-cn.js"></script>
+<script src="js/place.js"></script>
+<script src="js/pay.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/report.js"></script>
+<script src="js/report-canvas.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

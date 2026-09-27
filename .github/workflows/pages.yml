@@ -1,0 +1,81 @@
+# 把 astro-tool 里的公开站点文件发布到 GitHub Pages
+# 注意：tools/（订单后台、解锁码生成器）、server/（支付后端）、tests/ 不会发布
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 组装站点（只复制公开文件）
+        run: |
+          set -e
+          SRC="."
+          if [ -f "astro-tool/index.html" ]; then SRC="astro-tool"; fi
+          echo "站点源目录: $SRC"
+          mkdir -p _site
+          cp "$SRC/index.html" _site/
+          cp "$SRC/styles.css" _site/
+          cp -r "$SRC/js" _site/js
+          if [ -d "$SRC/images" ]; then cp -r "$SRC/images" _site/images; fi
+          touch _site/.nojekyll
+          echo "--- 发布内容 ---"
+          find _site -type f | sort
+          echo "--- 文件数：$(find _site -type f | wc -l) ---"
+
+      - name: 发布前校验
+        run: |
+          set -e
+          test -f _site/index.html
+          grep -q "js/app.js" _site/index.html
+          grep -q "js/orders.js" _site/index.html
+          test -f _site/js/app.js -a -f _site/js/orders.js -a -f _site/js/ephemeris.js
+          test -f _site/js/data-cn.js
+          # 后台与支付服务端绝不能出现在公开站点里
+          if [ -e _site/tools ] || [ -e _site/server ] || [ -e _site/tests ]; then
+            echo "❌ 检测到敏感目录被发布"; exit 1
+          fi
+          if grep -rl "CONFIG.pay\|hashSalt" _site/tools 2>/dev/null; then :; fi
+          # 提醒：如果还在用演示解锁码，构建会给出警告（不阻断）
+          if grep -q "demoCode: 'DEMO-8888'" _site/js/app.js; then
+            echo "::warning title=演示解锁码仍在配置里::公网环境会自动失效，但建议把 CONFIG.pay.demoCode 改成空字符串"
+          fi
+          if grep -q "unlockHashes: \[\]" _site/js/app.js && ! grep -q "apiEnabled: true" _site/js/app.js; then
+            echo "::warning title=尚未配置解锁码::上线后客户无法自助解锁，请用 tools/unlock-codegen.html 生成解锁码并把哈希粘贴到 CONFIG.pay.unlockHashes"
+          fi
+          echo "✅ 校验通过"
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

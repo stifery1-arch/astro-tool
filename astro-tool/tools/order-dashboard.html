@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>订单管理台 · 星语星盘</title>
+<style>
+  :root{--bg:#0b0f1c;--panel:#141a2e;--panel2:#1a2138;--line:rgba(232,196,106,.18);--soft:rgba(255,255,255,.08);
+    --gold:#e8c46a;--gold2:#f2d894;--text:#e9edf9;--dim:rgba(226,232,255,.6);--ok:#66c39a;--warn:#e2a45c;--bad:#e2604a;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(1000px 600px at 12% 0%,rgba(96,78,180,.22),transparent 60%),var(--bg);
+    color:var(--text);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-size:14px;line-height:1.65;}
+  .wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}
+  header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  h1{font-size:22px;margin:0;}
+  h1 span{color:var(--gold);}
+  .tagline{font-size:12.5px;color:var(--dim);}
+  .pill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(102,195,154,.15);color:var(--ok);border:1px solid rgba(102,195,154,.3);}
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px;}
+  .kpi{background:var(--panel);border:1px solid var(--soft);border-radius:14px;padding:16px 18px;}
+  .kpi .k{font-size:12.5px;color:var(--dim);}
+  .kpi .v{font-size:24px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .kpi .s{font-size:12px;color:var(--dim);}
+  .panel{background:var(--panel);border:1px solid var(--soft);border-radius:16px;padding:18px 20px;margin-bottom:16px;}
+  .panel h3{font-size:15px;margin:0 0 12px;}
+  .panel h3::before{content:"✦";color:var(--gold);margin-right:8px;font-size:12px;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;}
+  button{font-family:inherit;font-size:13.5px;padding:9px 16px;border-radius:999px;cursor:pointer;border:1px solid var(--soft);
+    background:rgba(255,255,255,.05);color:var(--dim);}
+  button:hover{color:var(--gold);border-color:var(--line);}
+  button.primary{background:linear-gradient(135deg,#f2d894,#e8c46a);color:#241c05;font-weight:700;border-color:transparent;}
+  button.mini{padding:4px 10px;font-size:12px;border-radius:8px;}
+  input,select,textarea{font-family:inherit;font-size:13.5px;padding:8px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.13);
+    background:rgba(9,13,26,.72);color:var(--text);}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(232,196,106,.55);}
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 14px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:middle;}
+  th{color:var(--gold2);font-size:12.5px;font-weight:600;white-space:nowrap;}
+  tbody tr:hover{background:rgba(232,196,106,.05);}
+  .mono{font-family:ui-monospace,Consolas,monospace;letter-spacing:.5px;}
+  .status{font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap;}
+  .st-pending{background:rgba(226,164,92,.16);color:var(--warn);}
+  .st-paid{background:rgba(102,195,154,.16);color:var(--ok);}
+  .st-delivered{background:rgba(127,154,208,.18);color:#a8bdf0;}
+  .st-refunded,.st-cancelled{background:rgba(226,96,74,.16);color:var(--bad);}
+  .muted{color:var(--dim);font-size:12.5px;}
+  .right{text-align:right;}
+  .chart{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:10px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;}
+  .bar{width:100%;max-width:44px;background:linear-gradient(180deg,#f2d894,#caa24c);border-radius:6px 6px 0 0;min-height:2px;}
+  .bar.dim{background:rgba(255,255,255,.10);}
+  .bar-label{font-size:11.5px;color:var(--dim);}
+  .bar-val{font-size:11px;color:var(--gold);font-variant-numeric:tabular-nums;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.06);}
+  .kv:last-child{border-bottom:none;}
+  .kv b{color:var(--gold2);font-weight:600;}
+  .warnbar{background:rgba(226,164,92,.12);border:1px solid rgba(226,164,92,.32);color:var(--warn);
+    border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .modal{position:fixed;inset:0;background:rgba(4,7,15,.72);display:flex;align-items:center;justify-content:center;z-index:99;padding:18px;}
+  .modal .box{background:linear-gradient(160deg,#161d34,#111629);border:1px solid var(--line);border-radius:18px;padding:22px;width:min(560px,96vw);}
+  .modal h3{margin-top:0;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-grid label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:4px;}
+  .form-grid input,.form-grid select{width:100%;}
+  .hidden{display:none !important;}
+  textarea{width:100%;min-height:90px;font-family:ui-monospace,Consolas,monospace;font-size:12px;}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:#1a2138;border:1px solid var(--line);
+    color:var(--text);padding:11px 20px;border-radius:999px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:200;}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  @media (max-width:1000px){.cards{grid-template-columns:repeat(2,1fr);}.grid2{grid-template-columns:1fr;}}
+  @media (max-width:640px){.cards{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}table{font-size:12px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>订单<span>管理台</span></h1>
+      <div class="tagline">数据保存在本机浏览器（localStorage），不上传任何服务器 · 支持导入支付后端 server/orders.json</div>
+    </div>
+    <div>
+      <span class="pill" id="syncPill">已同步</span>
+      <button class="mini" id="openSite">打开小站</button>
+    </div>
+  </header>
+
+  <div class="cards" id="kpis"></div>
+
+  <div class="panel">
+    <h3>近 12 个月收入</h3>
+    <div class="chart" id="monthChart"></div>
+  </div>
+
+  <div class="panel">
+    <h3>订单</h3>
+    <div class="toolbar">
+      <button class="primary" id="addOrder">＋ 新增订单</button>
+      <button id="importBtn">导入 orders.json / 备份</button>
+      <button id="exportCsv">导出 CSV</button>
+      <button id="exportJson">导出 JSON 备份</button>
+      <button id="clearAll">清空数据</button>
+      <input type="file" id="fileInput" accept=".json,.csv" class="hidden">
+    </div>
+    <div class="filters">
+      <select id="fStatus">
+        <option value="all">全部状态</option>
+        <option value="pending">待付款</option>
+        <option value="paid">已付款</option>
+        <option value="delivered">已交付</option>
+        <option value="refunded">已退款</option>
+        <option value="cancelled">已取消</option>
+      </select>
+      <select id="fRange">
+        <option value="all">全部时间</option>
+        <option value="today">今天</option>
+        <option value="week">近 7 天</option>
+        <option value="month">本月</option>
+        <option value="90">近 90 天</option>
+      </select>
+      <input type="text" id="fKeyword" placeholder="搜索订单号 / 客户 / 报告编号 / 解锁码" style="min-width:260px">
+      <span class="muted" id="listInfo"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>订单号</th><th>客户</th><th>产品</th><th class="right">金额</th><th>渠道</th><th>状态</th>
+          <th>创建</th><th>付款</th><th>解锁码</th><th>操作</th>
+        </tr></thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>产品 / 渠道分布</h3>
+      <div id="distProduct"></div>
+      <div style="height:12px"></div>
+      <div id="distChannel"></div>
+    </div>
+    <div class="panel">
+      <h3>解锁码</h3>
+      <div class="warnbar hidden" id="codeWarn"></div>
+      <div class="muted" style="margin-bottom:10px;">
+        哈希盐（必须与 <code>js/app.js</code> 的 <code>CONFIG.pay.hashSalt</code> 一致）：
+      </div>
+      <input type="text" id="salt" style="width:100%;margin-bottom:10px;">
+      <div class="toolbar">
+        <input type="number" id="genCount" value="10" min="1" max="200" style="width:90px">
+        <button id="genCodes">生成解锁码</button>
+        <button id="copyNewHashes">复制哈希数组（贴进 CONFIG.pay）</button>
+      </div>
+      <div style="margin-top:12px;max-height:240px;overflow:auto;">
+        <table><thead><tr><th>解锁码</th><th>绑定订单</th><th>生成时间</th></tr></thead><tbody id="codeRows"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>收入明细</h3>
+    <div id="distStatus"></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="orderModal">
+  <div class="box">
+    <h3 id="modalTitle">新增订单</h3>
+    <div class="form-grid">
+      <div><label>订单号（留空自动生成）</label><input type="text" id="mOrderNo" placeholder="自动生成"></div>
+      <div><label>客户称呼</label><input type="text" id="mCustomer" placeholder="如：小星"></div>
+      <div><label>产品</label>
+        <select id="mProduct">
+          <option>解锁导出</option><option>深度PDF报告</option><option>关系合盘</option>
+          <option>年度推运</option><option>月度陪跑</option><option>其他</option>
+        </select>
+      </div>
+      <div><label>金额（元）</label><input type="number" id="mAmount" value="9.9" step="0.01"></div>
+      <div><label>渠道</label>
+        <select id="mChannel"><option value="wechat">微信</option><option value="alipay">支付宝</option><option value="other">其他</option><option value="free">赠送</option></select>
+      </div>
+      <div><label>状态</label>
+        <select id="mStatus"><option value="pending">待付款</option><option value="paid">已付款</option><option value="delivered">已交付</option><option value="refunded">已退款</option><option value="cancelled">已取消</option></select>
+      </div>
+      <div style="grid-column:1/-1;"><label>备注</label><input type="text" id="mNote" placeholder="可选"></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px;justify-content:flex-end;">
+      <button id="modalCancel">取消</button>
+      <button class="primary" id="modalSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../js/pay.js"></script>
+<script src="../js/orders.js"></script>
+<script>
+(function () {
+  var P = window.AstroPay, O = window.AstroOrders;
+  var CFG_KEY = 'astro_admin_cfg_v1', CODE_KEY = 'astro_codes_v1';
+  var editingNo = null;
+
+  function $(s) { return document.querySelector(s); }
+  function esc(s) { return String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function money(n) { return '¥' + Number(n || 0).toFixed(2); }
+  function store() { try { return localStorage; } catch (e) { return null; } }
+  function loadCfg() {
+    try { return JSON.parse(store().getItem(CFG_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveCfg() {
+    var c = loadCfg();
+    c.salt = $('#salt').value.trim();
+    try { store().setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {}
+  }
+  function loadCodes() {
+    try { var c = JSON.parse(store().getItem(CODE_KEY) || '{}'); return c.codes || []; } catch (e) { return []; }
+  }
+  function saveCodes(codes, salt) {
+    try { store().setItem(CODE_KEY, JSON.stringify({ salt: salt, codes: codes })); } catch (e) {}
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2400);
+  }
+  function copy(text, msg) {
+    var done = function () { toast(msg || '已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+    } else { fallback(text, done); }
+  }
+  function fallback(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+
+  /* ---------- 渲染 ---------- */
+  function currentFilter() {
+    var f = { status: $('#fStatus').value, keyword: $('#fKeyword').value.trim() };
+    var range = $('#fRange').value;
+    var d = new Date();
+    if (range === 'today') { d.setHours(0, 0, 0, 0); f.from = d.toISOString(); }
+    else if (range === 'week') { d.setDate(d.getDate() - 7); f.from = d.toISOString(); }
+    else if (range === 'month') { f.from = new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); }
+    else if (range === '90') { d.setDate(d.getDate() - 90); f.from = d.toISOString(); }
+    return f;
+  }
+
+  function render() {
+    var s = O.stats();
+    var rows = O.list(currentFilter());
+    var cfg = O.CHANNEL_TEXT;
+
+    $('#kpis').innerHTML = [
+      ['今日收入', money(s.today.amount), s.today.count + ' 单'],
+      ['本月收入', money(s.month.amount), s.month.count + ' 单'],
+      ['累计收入', money(s.total.amount), s.total.count + ' 单'],
+      ['客单价', money(s.avg), '按已付款订单'],
+      ['待付款', money(s.pending.amount), s.pending.count + ' 单待跟进']
+    ].map(function (k) {
+      return '<div class="kpi"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + k[2] + '</div></div>';
+    }).join('');
+
+    // 近 12 个月柱状图
+    var max = Math.max.apply(null, s.byMonth.map(function (m) { return m.amount; }).concat([1]));
+    $('#monthChart').innerHTML = s.byMonth.map(function (m) {
+      var h = Math.round(m.amount / max * 100);
+      var cls = m.amount > 0 ? 'bar' : 'bar dim';
+      return '<div class="bar-col"><div class="bar-val">' + (m.amount > 0 ? '¥' + m.amount.toFixed(0) : '') + '</div>' +
+        '<div class="' + cls + '" style="height:' + Math.max(h, 2) + '%"></div>' +
+        '<div class="bar-label">' + m.label + '</div></div>';
+    }).join('');
+
+    $('#listInfo').textContent = '共 ' + rows.length + ' 笔 / 合计 ' + money(rows.filter(function (o) { return O.REVENUE_STATUS[o.status]; })
+      .reduce(function (a, o) { return a + o.amount; }, 0));
+
+    $('#orderRows').innerHTML = rows.length ? rows.map(function (o) {
+      var canPay = o.status === 'pending';
+      var canDeliver = o.status === 'paid';
+      return '<tr>' +
+        '<td class="mono">' + esc(o.orderNo) + '</td>' +
+        '<td>' + esc(o.customer || '—') + '<div class="muted">' + esc(o.reportNo || '') + '</div></td>' +
+        '<td>' + esc(o.product) + '</td>' +
+        '<td class="right mono">' + money(o.amount) + '</td>' +
+        '<td>' + esc(cfg[o.channel] || o.channel) + '</td>' +
+        '<td><span class="status st-' + o.status + '">' + (O.STATUS_TEXT[o.status] || o.status) + '</span></td>' +
+        '<td class="muted">' + fmtTime(o.createdAt) + '</td>' +
+        '<td class="muted">' + (o.paidAt ? fmtTime(o.paidAt) : '—') + '</td>' +
+        '<td>' + (o.code ? '<span class="mono">' + esc(o.code) + '</span> <button class="mini" data-act="copycode" data-no="' + esc(o.orderNo) + '">复制</button>' : '<button class="mini" data-act="gencode" data-no="' + esc(o.orderNo) + '">生成码</button>') + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          (canPay ? '<button class="mini" data-act="paid" data-no="' + esc(o.orderNo) + '">标记已付款</button> ' : '') +
+          (canDeliver ? '<button class="mini" data-act="delivered" data-no="' + esc(o.orderNo) + '">标记已交付</button> ' : '') +
+          '<button class="mini" data-act="edit" data-no="' + esc(o.orderNo) + '">编辑</button> ' +
+          '<button class="mini" data-act="del" data-no="' + esc(o.orderNo) + '">删除</button>' +
+        '</td></tr>';
+    }).join('') : '<tr><td colspan="10" class="muted" style="padding:26px;text-align:center;">暂无订单。客户点了付费导出会自动记录一笔待付款订单，也可以手动新增。</td></tr>';
+
+    // 分布
+    function distRows(obj, labelMap) {
+      var keys = Object.keys(obj);
+      if (!keys.length) { return '<div class="muted">暂无数据</div>'; }
+      var max = Math.max.apply(null, keys.map(function (k) { return obj[k].amount; }).concat([1]));
+      return keys.sort(function (a, b) { return obj[b].amount - obj[a].amount; }).map(function (k) {
+        var v = obj[k];
+        return '<div class="kv"><span>' + esc((labelMap && labelMap[k]) || k) + ' <span class="muted">' + v.count + ' 单</span></span>' +
+          '<b>' + money(v.amount) + '</b></div>' +
+          '<div style="height:6px;background:rgba(255,255,255,.06);border-radius:4px;margin-bottom:8px;overflow:hidden;">' +
+          '<div style="height:100%;width:' + Math.round(v.amount / max * 100) + '%;background:linear-gradient(90deg,#f2d894,#caa24c);"></div></div>';
+      }).join('');
+    }
+    $('#distProduct').innerHTML = '<div class="muted" style="margin-bottom:6px;">按产品</div>' + distRows(s.byProduct);
+    $('#distChannel').innerHTML = '<div class="muted" style="margin-bottom:6px;">按渠道</div>' + distRows(s.byChannel, cfg);
+    $('#distStatus').innerHTML = '<div class="muted" style="margin-bottom:6px;">按状态</div>' +
+      Object.keys(O.STATUS_TEXT).map(function (k) {
+        return '<div class="kv"><span>' + O.STATUS_TEXT[k] + '</span><b>' + (s.byStatus[k] || 0) + ' 单</b></div>';
+      }).join('');
+
+    renderCodes();
+    updateSyncPill();
+  }
+
+  function fmtTime(iso) {
+    if (!iso) { return '—'; }
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) { return '—'; }
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return (d.getMonth() + 1) + '/' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function renderCodes() {
+    var codes = loadCodes();
+    $('#codeRows').innerHTML = codes.length ? codes.slice().reverse().map(function (c) {
+      return '<tr><td class="mono">' + esc(c.code) + ' <button class="mini" data-copy="' + esc(c.code) + '">复制</button></td>' +
+        '<td class="muted">' + esc(c.orderNo || '—') + '</td><td class="muted">' + fmtTime(c.createdAt) + '</td></tr>';
+    }).join('') : '<tr><td colspan="3" class="muted">还没有解锁码，点上面「生成解锁码」</td></tr>';
+    $('#codeRows').querySelectorAll('[data-copy]').forEach(function (b) {
+      b.addEventListener('click', function () { copy(b.getAttribute('data-copy'), '解锁码已复制，发给客户即可'); });
+    });
+  }
+
+  /* 提示：有多少新生成的码还没同步到网站配置 */
+  function updateSyncPill() {
+    var codes = loadCodes();
+    var cfgState = loadCfg();
+    var pending = codes.filter(function (c) { return !cfgState.exported || cfgState.exported < c.createdAt; }).length;
+    var pill = $('#syncPill');
+    if (pending > 0) {
+      pill.textContent = pending + ' 个新解锁码待同步到网站配置';
+      pill.style.background = 'rgba(226,164,92,.16)';
+      pill.style.color = 'var(--warn)';
+      pill.style.borderColor = 'rgba(226,164,92,.35)';
+      $('#codeWarn').classList.remove('hidden');
+      $('#codeWarn').innerHTML = '有 <b>' + pending + '</b> 个新解锁码还没写进 <code>js/app.js</code> 的 <code>CONFIG.pay.unlockHashes</code>。' +
+        '点「复制哈希数组」粘贴进去后，再点 <button class="mini" id="markSynced">标记已同步</button>';
+      var btn = $('#markSynced');
+      if (btn) { btn.addEventListener('click', function () { var c = loadCfg(); c.exported = new Date().toISOString(); try { store().setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} render(); }); }
+    } else {
+      pill.textContent = '已同步';
+      pill.style.background = 'rgba(102,195,154,.15)';
+      pill.style.color = 'var(--ok)';
+      pill.style.borderColor = 'rgba(102,195,154,.3)';
+      $('#codeWarn').classList.add('hidden');
+    }
+  }
+
+  /* ---------- 事件 ---------- */
+  $('#addOrder').addEventListener('click', function () {
+    editingNo = null;
+    $('#modalTitle').textContent = '新增订单';
+    $('#mOrderNo').value = P.makeOrderNo();
+    $('#mCustomer').value = '';
+    $('#mAmount').value = '9.9';
+    $('#mStatus').value = 'paid';
+    $('#mNote').value = '';
+    $('#orderModal').classList.remove('hidden');
+  });
+  $('#modalCancel').addEventListener('click', function () { $('#orderModal').classList.add('hidden'); });
+  $('#modalSave').addEventListener('click', function () {
+    var data = {
+      orderNo: $('#mOrderNo').value.trim() || P.makeOrderNo(),
+      customer: $('#mCustomer').value.trim(),
+      product: $('#mProduct').value,
+      amount: parseFloat($('#mAmount').value) || 0,
+      channel: $('#mChannel').value,
+      note: $('#mNote').value.trim()
+    };
+    var status = $('#mStatus').value;
+    if (editingNo) {
+      O.update(editingNo, data);
+      O.update(editingNo, { status: status, paidAt: (status === 'paid' || status === 'delivered') ? (O.get(editingNo).paidAt || new Date().toISOString()) : O.get(editingNo).paidAt });
+      toast('订单已更新');
+    } else {
+      data.status = status;
+      if (status === 'paid' || status === 'delivered') { data.paidAt = new Date().toISOString(); }
+      O.add(data);
+      toast('订单已保存');
+    }
+    $('#orderModal').classList.add('hidden');
+    render();
+  });
+
+  $('#orderRows').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!btn) { return; }
+    var act = btn.getAttribute('data-act'), no = btn.getAttribute('data-no');
+    var order = O.get(no);
+    if (!order) { return; }
+    if (act === 'paid') { O.markPaid(no, { channel: order.channel }); toast('已标记为已付款'); }
+    else if (act === 'delivered') { O.markDelivered(no); toast('已标记为已交付'); }
+    else if (act === 'gencode') {
+      var code = genOne(order);
+      toast('解锁码 ' + code + ' 已生成并复制，发给客户即可');
+    } else if (act === 'copycode') { copy(order.code, '解锁码已复制'); return; }
+    else if (act === 'del') { if (confirm('确定删除订单 ' + no + ' ？')) { O.remove(no); toast('已删除'); } }
+    else if (act === 'edit') {
+      editingNo = no;
+      $('#modalTitle').textContent = '编辑订单 ' + no;
+      $('#mOrderNo').value = order.orderNo;
+      $('#mCustomer').value = order.customer;
+      $('#mProduct').value = order.product;
+      $('#mAmount').value = order.amount;
+      $('#mChannel').value = order.channel;
+      $('#mStatus').value = order.status;
+      $('#mNote').value = order.note;
+      $('#orderModal').classList.remove('hidden');
+      return;
+    }
+    render();
+  });
+
+  /* 生成一个解锁码并绑定订单 */
+  function genOne(order) {
+    saveCfg();
+    var salt = $('#salt').value.trim();
+    P.configure({ hashSalt: salt });
+    var code = P.normalizeCode(rand(4) + '-' + rand(4));
+    var codes = loadCodes();
+    codes.push({ code: code, hash: P.hashToolCode(code), createdAt: new Date().toISOString(), orderNo: order.orderNo });
+    saveCodes(codes, salt);
+    O.update(order.orderNo, { code: code, codeSentAt: new Date().toISOString() });
+    try { copy(code); } catch (e) {}
+    updateSyncPill();
+    return code;
+  }
+  function rand(n) {
+    var s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', out = '';
+    for (var i = 0; i < n; i++) { out += s[Math.floor(Math.random() * s.length)]; }
+    return out;
+  }
+
+  $('#genCodes').addEventListener('click', function () {
+    var salt = $('#salt').value.trim();
+    saveCfg();
+    P.configure({ hashSalt: salt });
+    var n = Math.max(1, Math.min(200, parseInt($('#genCount').value, 10) || 10));
+    var codes = loadCodes();
+    for (var i = 0; i < n; i++) {
+      var c = P.normalizeCode(rand(4) + '-' + rand(4));
+      codes.push({ code: c, hash: P.hashToolCode(c), createdAt: new Date().toISOString(), orderNo: '' });
+    }
+    saveCodes(codes, salt);
+    toast('已生成 ' + n + ' 个解锁码');
+    render();
+  });
+  $('#copyNewHashes').addEventListener('click', function () {
+    var codes = loadCodes();
+    if (!codes.length) { toast('还没有解锁码'); return; }
+    var arr = '[\n  "' + codes.map(function (c) { return c.hash; }).join('",\n  "') + '"\n]';
+    copy(arr, '哈希数组已复制，粘贴到 CONFIG.pay.unlockHashes');
+  });
+
+  $('#exportCsv').addEventListener('click', function () { download(O.toCSV(), 'orders-' + stamp() + '.csv', 'text/csv'); });
+  $('#exportJson').addEventListener('click', function () { download(O.toJSON(), 'orders-backup-' + stamp() + '.json', 'application/json'); });
+  $('#importBtn').addEventListener('click', function () { $('#fileInput').click(); });
+  $('#fileInput').addEventListener('change', function (e) {
+    var f = e.target.files[0];
+    if (!f) { return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var r = O.importData(String(reader.result));
+        toast('导入完成：新增 ' + r.added + ' 笔，更新 ' + r.updated + ' 笔');
+        render();
+      } catch (err) { toast('导入失败：' + err.message); }
+    };
+    reader.readAsText(f, 'utf-8');
+    e.target.value = '';
+  });
+  $('#clearAll').addEventListener('click', function () {
+    if (confirm('确定清空本机全部订单数据？（建议先导出 JSON 备份）')) { O.clear(); render(); toast('已清空'); }
+  });
+  ['fStatus', 'fRange'].forEach(function (id) { $('#' + id).addEventListener('change', render); });
+  $('#fKeyword').addEventListener('input', render);
+  $('#salt').addEventListener('change', function () { saveCfg(); toast('盐值已保存'); });
+  $('#openSite').addEventListener('click', function () { window.open('../index.html', '_blank'); });
+
+  function download(text, filename, mime) {
+    var blob = new Blob(['\ufeff' + text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  function stamp() { var d = new Date(); return '' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2); }
+
+  /* 初始化 */
+  var cfg = loadCfg();
+  $('#salt').value = cfg.salt || 'stifery-astro-2e56pj';
+  render();
+})();
+</script>
+</body>
+</html>

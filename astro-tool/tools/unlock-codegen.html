@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>解锁码生成器 · 星语星盘</title>
+<style>
+  :root{--bg:#0b0f1c;--panel:#151c33;--line:rgba(232,196,106,.22);--gold:#e8c46a;--text:#e9edf9;--dim:rgba(226,232,255,.6);}
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(900px 600px at 20% 0%,rgba(96,78,180,.25),transparent 60%),var(--bg);
+    color:var(--text);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-size:14px;line-height:1.7;padding:26px;}
+  .wrap{max-width:920px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 6px;}
+  h1 span{color:var(--gold);}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .card{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px 22px;margin-bottom:18px;}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+  label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:5px;}
+  input,select{padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(9,13,26,.75);
+    color:var(--text);font-size:14px;font-family:inherit;}
+  input[type=number]{width:110px;}
+  #salt{width:280px;font-family:ui-monospace,Consolas,monospace;}
+  #reportNo{width:220px;}
+  button{padding:10px 20px;border-radius:999px;border:1px solid transparent;cursor:pointer;font-size:14px;font-family:inherit;
+    background:linear-gradient(135deg,#f2d894,#e8c46a);color:#241c05;font-weight:700;}
+  button.ghost{background:rgba(255,255,255,.06);color:var(--dim);border-color:rgba(255,255,255,.12);font-weight:400;}
+  button:hover{filter:brightness(1.06);}
+  .warn{color:#e2a45c;font-size:12.5px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px;}
+  th,td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;}
+  th{color:var(--gold);font-weight:600;font-size:12.5px;}
+  code,.mono{font-family:ui-monospace,Consolas,monospace;letter-spacing:1px;color:var(--gold);}
+  textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(9,13,26,.75);color:var(--text);font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.6;}
+  .hint{color:var(--dim);font-size:12.5px;}
+  .ok{color:#66c39a;} .bad{color:#e2604a;}
+  .steps{color:var(--dim);font-size:13px;padding-left:18px;}
+  .steps li{margin-bottom:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>解锁码<span>生成器</span></h1>
+  <div class="sub">给解读师用的本地工具：生成给客户的解锁码，并得到可以粘贴进 <code>CONFIG.pay</code> 的哈希数组。<b>本页面不会联网。</b>　<a href="order-dashboard.html" style="color:#e8c46a">→ 打开订单管理台（含收入统计）</a></div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>哈希盐 hashSalt（必须与 CONFIG.pay.hashSalt 完全一致）</label>
+        <input type="text" id="salt" value="stifery-astro-2e56pj">
+      </div>
+      <div>
+        <label>生成数量</label>
+        <input type="number" id="count" value="20" min="1" max="500">
+      </div>
+      <div>
+        <label>绑定报告编号（可选，做「一报告一码」时填）</label>
+        <input type="text" id="reportNo" placeholder="如 XY260927-ABC12，留空=通用码">
+      </div>
+      <button id="gen">生成解锁码</button>
+    </div>
+    <div class="warn" id="saltWarn" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div><b>① 发给客户的解锁码</b> <span class="hint">（一码一用，发出后在表格里标注一下）</span></div>
+      <div>
+        <button class="ghost" id="copyCodes">复制码列表</button>
+        <button class="ghost" id="downloadCsv">下载 CSV</button>
+      </div>
+    </div>
+    <table id="codeTable"></table>
+
+    <div style="margin-top:20px;">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <div><b>② 粘贴到 CONFIG.pay 的哈希数组</b></div>
+        <button class="ghost" id="copyHashes">复制哈希数组</button>
+      </div>
+      <textarea id="hashOut" readonly></textarea>
+      <div class="hint" id="pasteHint"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <b>验证某个解锁码是否已在配置里生效</b>
+    <div class="row" style="margin-top:10px;">
+      <div><label>解锁码</label><input type="text" id="verifyCode" placeholder="XYA7-K2M9"></div>
+      <div><label>报告编号（报告级码需要填）</label><input type="text" id="verifyReportNo" placeholder="可留空"></div>
+      <button id="doVerify">验证</button>
+    </div>
+    <div id="verifyMsg" class="hint" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card">
+    <b>使用步骤</b>
+    <ol class="steps">
+      <li>把这里的 <b>hashSalt</b> 改成你自己的（同时改 <code>js/app.js</code> 里的 <code>CONFIG.pay.hashSalt</code>，两边必须一致）。</li>
+      <li>生成一批解锁码，把 <b>码列表</b> 保存好（每个客户发一个）；把 <b>哈希数组</b> 粘贴进 <code>CONFIG.pay.unlockHashes</code>。</li>
+      <li>客户在小站上点付费导出 → 扫码付款 → 把订单号发给你 → 你发一个解锁码给他。</li>
+      <li>客户输入解锁码即解锁导出（下载图片 / 打印 PDF / 复制报告）。</li>
+      <li>如果做「一报告一码」：填上报告编号再生成，哈希贴进 <code>CONFIG.pay.reportHashes</code>，并把 <code>mode</code> 设为 <code>report</code> 或 <code>both</code>。</li>
+    </ol>
+    <div class="hint">安全提示：源码里只保存哈希，无法反推出解锁码；但纯前端校验仍可能被技术用户绕过。正式经营建议用 <code>server/pay-server.js</code> 接入微信/支付宝官方支付，由服务端验签后自动解锁。</div>
+  </div>
+</div>
+
+<script src="../js/pay.js"></script>
+<script>
+(function () {
+  var P = window.AstroPay;
+  var CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var codes = [], hashes = [], boundReport = '', boundSalt = '';
+
+  function rand(n) {
+    var s = '';
+    for (var i = 0; i < n; i++) { s += CHARS[Math.floor(Math.random() * CHARS.length)]; }
+    return s;
+  }
+  function makeCode() { return rand(4) + '-' + rand(4); }
+
+  function checkSalt() {
+    var salt = document.getElementById('salt').value.trim();
+    document.getElementById('saltWarn').textContent = (salt === 'xingyu-astro-2026-change-me')
+      ? '⚠ 你还在用默认盐值，正式上线前请改成自己的，并同步修改 js/app.js。'
+      : '';
+  }
+  document.getElementById('salt').addEventListener('input', checkSalt);
+  checkSalt();
+
+  document.getElementById('gen').addEventListener('click', function () {
+    var salt = document.getElementById('salt').value.trim();
+    var count = Math.max(1, Math.min(500, parseInt(document.getElementById('count').value, 10) || 20));
+    boundReport = document.getElementById('reportNo').value.trim();
+    boundSalt = salt;
+    P.configure({ hashSalt: salt, unlockHashes: [], reportHashes: [] });
+    codes = []; hashes = [];
+    var seen = {};
+    for (var i = 0; i < count; i++) {
+      var c;
+      do { c = makeCode(); } while (seen[c]);
+      seen[c] = 1;
+      codes.push(c);
+      hashes.push(boundReport ? P.hashReportCode(c, boundReport) : P.hashToolCode(c));
+    }
+    render();
+  });
+
+  function render() {
+    var t = '<tr><th>#</th><th>解锁码</th><th>对应哈希（供核对）</th></tr>';
+    codes.forEach(function (c, i) {
+      t += '<tr><td>' + (i + 1) + '</td><td><code>' + c + '</code></td><td class="hint" style="font-family:ui-monospace,monospace">' + hashes[i].slice(0, 16) + '…</td></tr>';
+    });
+    document.getElementById('codeTable').innerHTML = t;
+    document.getElementById('resultCard').style.display = 'block';
+    var arr = JSON.stringify(hashes, null, 0).replace(/","/g, '",\n    "').replace('["', '[\n    "').replace('"]', '"\n  ]');
+    document.getElementById('hashOut').value = arr;
+    document.getElementById('pasteHint').innerHTML = boundReport
+      ? ('这是<b>报告级</b>解锁码，请粘贴到 <code>CONFIG.pay.reportHashes</code>，并把 <code>mode</code> 设为 <code>report</code> 或 <code>both</code>（绑定报告：' + boundReport + '）')
+      : '请粘贴到 <code>CONFIG.pay.unlockHashes</code>（通用解锁码，一次购买永久解锁本设备）';
+  }
+
+  document.getElementById('copyCodes').addEventListener('click', function () {
+    copy(codes.join('\n'), '已复制 ' + codes.length + ' 个解锁码');
+  });
+  document.getElementById('copyHashes').addEventListener('click', function () {
+    copy(document.getElementById('hashOut').value, '已复制哈希数组，粘贴到 CONFIG.pay 即可');
+  });
+  document.getElementById('downloadCsv').addEventListener('click', function () {
+    var csv = 'code,hash\n' + codes.map(function (c, i) { return c + ',' + hashes[i]; }).join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'unlock-codes' + (boundReport ? '-' + boundReport : '') + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
+  document.getElementById('doVerify').addEventListener('click', function () {
+    var code = document.getElementById('verifyCode').value.trim();
+    var rep = document.getElementById('verifyReportNo').value.trim();
+    var salt = document.getElementById('salt').value.trim();
+    P.configure({ hashSalt: salt });
+    var r = P.selfCheck(code, rep || null);
+    var inCurrent = (boundSalt === salt) && (codes.indexOf(P.normalizeCode(code)) >= 0 || codes.indexOf(code) >= 0);
+    document.getElementById('verifyMsg').innerHTML =
+      '归一化：<code>' + r.code + '</code><br>' +
+      '工具级哈希：<code>' + r.toolHash + '</code><br>' +
+      (rep ? ('报告级哈希：<code>' + r.reportHash + '</code><br>') : '') +
+      '本次生成的列表里' + (inCurrent ? '<span class="ok">包含</span>' : '<span class="bad">不包含</span>') + '该码<br>' +
+      '<span class="hint">（要确认线上配置是否生效，请把码和哈希填进 CONFIG.pay 后，在网站上点「解锁」试一次）</span>';
+  });
+
+  function copy(text, msg) {
+    var done = function () { alert(msg || '已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+    } else { fallback(text, done); }
+  }
+  function fallback(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('复制失败，请手动选择'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# 构建产物
+_site/
+astro-tool/_site/
+
+# 运行时数据与依赖
+node_modules/
+astro-tool/server/orders.json
+*.log
+
+# 明文解锁码（绝对不能上传）
+astro-tool/解锁码*.txt
+astro-tool/unlock-codes*.csv
+astro-tool/unlock-codes*.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
