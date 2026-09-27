@@ -991,12 +991,18 @@
     try { renderHistory(); } catch (e) {}
   }
   function renderHistory() {
-    var list = JSON.parse(localStorage.getItem('astro_history_v1') || '[]');
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem('astro_history_v1') || '[]') || []; } catch (e) { list = []; }
     var box = $('#history');
     if (!list.length) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="history-title">最近排盘</div><div class="history-list">' + list.map(function (x, i) {
-      return '<button class="chip" data-idx="' + i + '">' + esc(x.name) + ' · ' + esc(x.dateText.slice(0, 10)) + '</button>';
-    }).join('') + '</div>';
+    box.innerHTML =
+      '<div class="history-head">' +
+        '<span class="history-title">最近排盘</span>' +
+        '<button type="button" class="history-clear" id="historyClear">清除</button>' +
+      '</div>' +
+      '<div class="history-list">' + list.map(function (x, i) {
+        return '<button class="chip" data-idx="' + i + '">' + esc(x.name) + ' · ' + esc(x.dateText.slice(0, 10)) + '</button>';
+      }).join('') + '</div>';
     $$('#history .chip').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var item = list[+btn.getAttribute('data-idx')];
@@ -1012,8 +1018,34 @@
         toast('已载入历史记录，点击「开始排盘」重新计算');
       });
     });
+    // 清除按钮：第一次点变成「确认清除？」，3 秒内再点一次才真正清除
+    var clearBtn = $('#historyClear');
+    var resetTimer = null;
+    clearBtn.addEventListener('click', function () {
+      if (clearBtn.getAttribute('data-confirm') === '1') {
+        clearHistory();
+        return;
+      }
+      clearBtn.setAttribute('data-confirm', '1');
+      clearBtn.textContent = '确认清除？';
+      clearBtn.classList.add('danger');
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(function () {
+        clearBtn.setAttribute('data-confirm', '');
+        clearBtn.textContent = '清除';
+        clearBtn.classList.remove('danger');
+      }, 3000);
+    });
   }
 
+  function clearHistory() {
+    try {
+      localStorage.removeItem('astro_history_v1');
+      localStorage.removeItem('astro_last_v1');
+    } catch (e) {}
+    renderHistory();
+    toast('已清除最近排盘记录（已有星盘结果不受影响）');
+  }
   /* ===================== 提示 ===================== */
   var toastTimer = null;
   function toast(msg, type) {

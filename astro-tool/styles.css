@@ -599,3 +599,15 @@ body.paywall-open{overflow:hidden;}
 @media (max-width:640px){
   .result-actions .btn-act{padding:9px 12px;font-size:12.5px;letter-spacing:0;}
 }
+/* 最近排盘：标题 + 清除按钮 */
+.history-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.history-head .history-title{margin-bottom:0;}
+.history-clear{
+  font-family:var(--font);font-size:12px;line-height:1;padding:4px 10px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line-soft);color:var(--dim);cursor:pointer;
+  transition:.18s;
+}
+.history-clear:hover{color:var(--gold);border-color:var(--line);}
+.history-clear.danger{
+  background:rgba(226,96,74,.16);border-color:rgba(226,96,74,.5);color:#ff9c8a;font-weight:600;
+}
