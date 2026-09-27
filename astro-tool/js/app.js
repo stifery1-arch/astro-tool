@@ -667,6 +667,8 @@
     showPayMsg(label ? '解锁后即可：' + label : '', '');
     $('#payCode').value = '';
     $('#payContact').innerHTML = cfg.contact ? ('解读师：<b>' + esc(cfg.payeeName || '') + '</b><br>' + esc(cfg.contact)) : '';
+    var availChannels = syncQrTabs();
+    if (!availChannels.length) { payChannel = 'wechat'; }
     renderQr(payChannel);
     // 防御：还没配置任何解锁码哈希（也没接后端）时明确提示，避免客户付款后无法解锁
     var hasCodes = (cfg.unlockHashes && cfg.unlockHashes.length) || (cfg.reportHashes && cfg.reportHashes.length);
@@ -685,27 +687,63 @@
     document.body.classList.remove('paywall-open');
   }
 
+  /* 当前可用的收款渠道：后端支付模式下两个都可用；否则看有没有配二维码 */
+  function availableChannels() {
+    var cfg = CONFIG.pay || {};
+    if (cfg.apiEnabled && cfg.apiBase) { return ['wechat', 'alipay']; }
+    var list = [];
+    if (cfg.wechatQrcode || CONFIG.qrcodeSrc) { list.push('wechat'); }
+    if (cfg.alipayQrcode) { list.push('alipay'); }
+    return list;
+  }
+
+  function syncQrTabs() {
+    var avail = availableChannels();
+    $$('#qrTabs button').forEach(function (b) {
+      b.classList.toggle('hidden', avail.indexOf(b.getAttribute('data-ch')) < 0);
+    });
+    // 只配了一个渠道时，不需要切换栏
+    $('#qrTabs').classList.toggle('hidden', avail.length <= 1);
+    if (avail.length && avail.indexOf(payChannel) < 0) { payChannel = avail[0]; }
+    return avail;
+  }
+
   function renderQr(channel) {
     payChannel = channel;
     var cfg = CONFIG.pay || {};
-    var src = channel === 'alipay' ? cfg.alipayQrcode : cfg.wechatQrcode;
     var who = channel === 'alipay' ? '支付宝' : '微信';
+    var src = channel === 'alipay' ? cfg.alipayQrcode : cfg.wechatQrcode;
     var fallback = false;
-    // 没单独配置收款码时，退回使用「加微信二维码」：客户加好友后转账，再把订单号发过来
+    // 微信没单独配收款码时，退回用「加微信二维码」：客户加好友后转账，再把订单号发过来
     if (!src && channel === 'wechat' && CONFIG.qrcodeSrc) { src = CONFIG.qrcodeSrc; fallback = true; }
+
+    function tipText(isFallback) {
+      if (cfg.apiEnabled && cfg.apiBase) { return '扫码支付后会自动解锁，无需手动输入解锁码'; }
+      if (isFallback) {
+        return '扫码加' + (cfg.payeeName || '解读师') + '，转账 ' + (cfg.priceText || '') + ' 后把订单号发过来领取解锁码';
+      }
+      return '付款后把订单号发给' + (cfg.payeeName || '解读师') + '领取解锁码';
+    }
+
     if (src) {
       $('#qrBox').innerHTML = '<img src="' + esc(src) + '" alt="' + who + (fallback ? '联系二维码' : '收款码') + '">';
+      var img = $('#qrBox img');
+      // 图片不存在 / 打不开时：微信渠道退回加好友二维码，其它渠道给出明确提示，避免显示裂图
+      img.addEventListener('error', function () {
+        if (!fallback && channel === 'wechat' && CONFIG.qrcodeSrc && src !== CONFIG.qrcodeSrc) {
+          fallback = true;
+          img.src = CONFIG.qrcodeSrc;
+          $('#qrTip').textContent = tipText(true);
+        } else {
+          $('#qrBox').innerHTML = '<div class="qr-empty">二维码图片加载失败<br>请检查 ' + esc(src) + '<br>是否已放进 images 目录</div>';
+        }
+      });
     } else {
       $('#qrBox').innerHTML = '<div class="qr-empty">尚未配置' + who + '收款码<br>请在 CONFIG.pay.' + (channel === 'alipay' ? 'alipayQrcode' : 'wechatQrcode') + ' 里填写图片路径</div>';
     }
-    $('#qrTip').textContent = (cfg.apiEnabled && cfg.apiBase)
-      ? '扫码支付后会自动解锁，无需手动输入解锁码'
-      : (fallback
-        ? ('扫码加' + (cfg.payeeName || '解读师') + '，转账 ' + (cfg.priceText || '') + ' 后把订单号发过来领取解锁码')
-        : ('付款后把订单号发给' + (cfg.payeeName || '解读师') + '领取解锁码'));
+    $('#qrTip').textContent = tipText(fallback);
     $$('#qrTabs button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-ch') === channel); });
   }
-
   function showPayMsg(text, cls) {
     var el = $('#payMsg');
     el.textContent = text || '';
