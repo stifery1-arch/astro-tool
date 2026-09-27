@@ -573,3 +573,29 @@ tr.nature-调整 td:nth-child(5){color:#a97fd0;}
   .paywall-box{padding:22px 16px 18px;}
 }
 body.paywall-open{overflow:hidden;}
+/* ============================================================
+   结果区 4 个导出按钮（醒目标色）
+   ============================================================ */
+.result-actions .btn-act{
+  border:none;font-weight:700;letter-spacing:.6px;
+  box-shadow:0 6px 16px rgba(0,0,0,.38);
+  transition:transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.result-actions .btn-act:hover{
+  transform:translateY(-2px);filter:brightness(1.07);
+  box-shadow:0 12px 26px rgba(0,0,0,.5);
+}
+.result-actions .btn-act:active{transform:translateY(0);filter:brightness(.97);}
+.btn-act-image{background:linear-gradient(135deg,#ffe6a8,#e8bd55 55%,#cfa03c);color:#241c05;}
+.btn-act-print{background:linear-gradient(135deg,#7fd0f5,#3f86cc 60%,#2f6cae);color:#05121f;}
+.btn-act-copy{background:linear-gradient(135deg,#c9a4f2,#8259ce 60%,#6b46b4);color:#120726;}
+.btn-act-share{background:linear-gradient(135deg,#86e3b6,#39ac7c 60%,#2c9068);color:#04170f;}
+.btn-act-image:hover{box-shadow:0 12px 26px rgba(232,189,85,.35);}
+.btn-act-print:hover{box-shadow:0 12px 26px rgba(63,134,204,.35);}
+.btn-act-copy:hover{box-shadow:0 12px 26px rgba(130,89,206,.38);}
+.btn-act-share:hover{box-shadow:0 12px 26px rgba(57,172,124,.35);}
+
+/* 手机端让 4 个按钮更好点：保留醒目色，同时更紧凑 */
+@media (max-width:640px){
+  .result-actions .btn-act{padding:9px 12px;font-size:12.5px;letter-spacing:0;}
+}
