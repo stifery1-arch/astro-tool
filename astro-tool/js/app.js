@@ -84,6 +84,7 @@
     buildBrand();
     buildPlacePickers();
     buildZoneSelect();
+    buildHouseSelect();
     PAY.configure(CONFIG.pay);
     bindEvents();
     bindPaywall();
@@ -270,6 +271,25 @@
       $('#cityHint').className = 'hint warn';
     }
   }
+  /* 宫位制下拉：由引擎清单生成，并在下方显示该系统的说明 */
+  function buildHouseSelect() {
+    var sel = $('#houseSystem');
+    var groups = {};
+    E.HOUSE_SYSTEMS.forEach(function (h) { (groups[h.group] = groups[h.group] || []).push(h); });
+    sel.innerHTML = Object.keys(groups).map(function (g) {
+      return '<optgroup label="' + esc(g) + '">' + groups[g].map(function (h) {
+        return '<option value="' + h.key + '">' + esc(h.name) + '</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+    sel.value = 'placidus';
+    function refresh() {
+      var h = E.HOUSE_SYSTEMS.filter(function (x) { return x.key === sel.value; })[0];
+      $('#houseHint').textContent = h ? h.desc : '';
+    }
+    sel.addEventListener('change', refresh);
+    refresh();
+  }
+
   function buildZoneSelect() {
     $('#zone').innerHTML = D.ZONES.map(function (z) {
       return '<option value="' + esc(z.zone) + '">' + esc(z.zone + '　' + z.label) + '</option>';
@@ -424,7 +444,7 @@
     renderTransits(c);
     $('#metaLine').textContent = c.input.name + ' · ' + c.input.dateText + ' · ' + c.input.placeName +
       (c.input.unknownTime ? ' · ⚠ 出生时间未知，上升与宫位仅供参考' : '') +
-      ' · 宫位制：' + (c.raw.houses.system === 'placidus' ? '普拉西度' : c.raw.houses.system === 'whole' ? '整宫制' : c.raw.houses.system === 'equal' ? '等分宫位' : '波菲里' + (c.raw.houses.fallback ? '（高纬度自动降级）' : ''));
+      ' · 宫位制：' + E.houseName(c.raw.houses.system, true) + (c.raw.houses.fallback ? '（高纬度自动降级）' : '');
     $('#unknownWarn').classList.toggle('hidden', !c.input.unknownTime);
     resetReportPanel(c);
   }

@@ -126,9 +126,7 @@
     var sun = chart.byKey.sun, moon = chart.byKey.moon, asc = chart.angleByKey.asc;
     var el = chart.distributions.elements, mode = chart.distributions.modes;
     var retroList = chart.corePlanets.filter(function (p) { return p.retrograde && p.key !== 'node'; });
-    var houseSystemName = chart.raw.houses.system === 'placidus' ? '普拉西度 Placidus'
-      : chart.raw.houses.system === 'whole' ? '整宫制 Whole Sign'
-      : chart.raw.houses.system === 'equal' ? '等分宫位 Equal' : '波菲里 Porphyry';
+    var houseSystemName = E.houseName(chart.raw.houses.system) + (chart.raw.houses.fallback ? '（高纬度自动降级）' : '');
     var chapters = [];
 
     /* --- 01 星盘总览 --- */
