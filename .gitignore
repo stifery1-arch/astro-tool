@@ -1,3 +1,9 @@
+# 仓库根目录只跟踪本项目相关文件，其它文件（工作目录里的其它内容）不入库
+/*
+!/.gitignore
+!/.github/
+!/astro-tool/
+
 # 构建产物
 _site/
 astro-tool/_site/
